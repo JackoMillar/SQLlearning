@@ -1,0 +1,80 @@
+1)
+SELECT count(*)
+FROM food_item
+WHERE restaurant_id = "342";
+
+2)
+SELECT payment_method.name, COUNT(payment_method_id)
+FROM orders
+RIGHT OUTER JOIN payment_method ON orders.payment_method_id=payment_method.id
+GROUP BY name
+ORDER BY name ASC;
+
+6)
+SELECT users.first_name, users.last_name, COUNT(orders.rider_id) AS "deliveries"
+FROM rider
+LEFT OUTER JOIN users on rider.user_id=users.id
+RIGHT OUTER JOIN orders on rider.id=orders.rider_id
+GROUP BY first_name, last_name
+ORDER BY deliveries DESC
+LIMIT 3;
+
+7)
+SELECT restaurant.name AS "restaurant", food_item.name AS "item", food_item.price
+FROM restaurant
+LEFT OUTER JOIN food_item on restaurant.id=food_item.restaurant_id
+WHERE NOT EXISTS (
+SELECT 1
+FROM food_item
+WHERE restaurant.id=food_item.restaurant_id
+AND food_item.price <= 10
+);
+
+8)
+SELECT users.first_name, users.last_name, COUNT(IF(address.main = 1, 1, NULL)) AS "main", COUNT(IF(address.main = 1, NULL, 1)) AS "other"
+FROM users
+LEFT OUTER JOIN orders on users.id=orders.customer_id
+LEFT OUTER JOIN address on orders.delivery_address_id=address.id
+GROUP BY users.id, users.first_name, users.last_name
+HAVING COUNT(IF(address.main = 1, 1, NULL)) > 40 AND COUNT(IF(address.main = 1, NULL, 1))
+ORDER BY main ASC;
+
+9)
+SELECT restaurant.name AS "restaurant", food_item.name
+FROM restaurant
+LEFT OUTER JOIN food_item ON restaurant.id=food_item.restaurant_id
+WHERE NOT EXISTS (
+SELECT 1
+FROM order_item
+WHERE order_item.food_item_id=food_item.id
+);
+
+11)
+SELECT orders.id, SUM(order_item.quantity * food_item.price) AS "items total", 
+    CASE
+        WHEN SUM(order_item.quantity * food_item.price) < 10 THEN 3
+        WHEN SUM(order_item.quantity * food_item.price) < 20 THEN 2
+        WHEN SUM(order_item.quantity * food_item.price) < 30 THEN 1
+        ELSE 0
+    END AS "delivery",
+     (SUM(order_item.quantity * food_item.price) +
+       CASE
+           WHEN SUM(order_item.quantity * food_item.price) < 10 THEN 3
+           WHEN SUM(order_item.quantity * food_item.price) < 20 THEN 2
+           WHEN SUM(order_item.quantity * food_item.price) < 30 THEN 1
+           ELSE 0
+       END) AS "total", orders.delivery_charge AS "stored delivery charge", orders.total_price AS "stored total" 
+FROM orders
+LEFT OUTER JOIN order_item on orders.id=order_item.order_id
+LEFT OUTER JOIN food_item on order_item.food_item_id=food_item.id
+GROUP BY orders.id, orders.delivery_charge, orders.total_price
+HAVING 
+    (SUM(order_item.quantity * food_item.price) +
+    CASE
+        WHEN SUM(order_item.quantity * food_item.price) < 10 THEN 3
+        WHEN SUM(order_item.quantity * food_item.price) < 20 THEN 2
+        WHEN SUM(order_item.quantity * food_item.price) < 30 THEN 1
+        ELSE 0
+    END) != orders.total_price;
+
+  
